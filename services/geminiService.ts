@@ -2,12 +2,21 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ActionType, EventOutcome, EventScenario, TerrainType } from "../types";
 import { SYSTEM_INSTRUCTION } from "../constants";
 
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazy initialization to prevent "process is not defined" error in browser
+const getAiClient = () => {
+    // Check if process exists (Node.js/Build env) or fallback for browser
+    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
+    if (!apiKey) {
+        console.warn("API Key not found. AI features may not work.");
+        return new GoogleGenAI({ apiKey: 'MISSING_KEY' });
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
 const modelName = 'gemini-3-flash-preview';
 
 export const generateTileEvent = async (terrain: TerrainType): Promise<EventScenario> => {
+  const ai = getAiClient();
   const prompt = `
   Generate a brief political or cultural conflict scenario for a "${terrain}" region in a nation seeking self-determination.
   The scenario should require the player to make a decision.
@@ -116,6 +125,7 @@ export const resolveGameAction = async (
   actionType: ActionType,
   terrain: TerrainType
 ): Promise<EventOutcome> => {
+  const ai = getAiClient();
   const prompt = `
   Context: Terrain is ${terrain}. Scenario: "${scenario}".
   Player chose action: ${actionType}.
